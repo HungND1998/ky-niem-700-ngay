@@ -150,9 +150,13 @@
         <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
     </div>
 
-    <div class="musicDiscBtn" id="musicDiscBtn" title="Bật / Tắt nhạc nền">
+    <div class="musicDiscBtn" id="musicDiscBtn" title="🎵 3 Phải 6 Đừng - Quân A.P (Bấm để Bật / Tắt nhạc)">
         <i class="fa-solid fa-music"></i>
     </div>
+    <audio id="bgMusicAudio" loop preload="auto">
+        <source src="../image/3-phai-6-dung.webm" type="audio/webm">
+        <source src="../image/3-phai-6-dung.m4a" type="audio/mp4">
+    </audio>
 
     <div class="anniversaryDock">
         <button type="button" class="dockBtn" id="openPhotoboothBtn">📸 Photobooth 700 Ngày</button>
@@ -833,25 +837,31 @@
             setTimeout(() => note.remove(), 2200);
         }
 
+        const bgMusicAudio = document.getElementById('bgMusicAudio');
+        bgMusicAudio.volume = 0.75;
+
         function startMusicBox() {
             if (isMusicPlaying) return;
-            ensureAudioCtx();
             isMusicPlaying = true;
             musicDiscBtn.classList.add('playing');
-            playChime(romanticMelody[melodyStep % romanticMelody.length], 0.07, 1.1);
-            melodyStep++;
 
-            melodyInterval = setInterval(() => {
-                playChime(romanticMelody[melodyStep % romanticMelody.length], 0.07, 1.1);
-                melodyStep++;
-            }, 480);
+            const playPromise = bgMusicAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    // Nếu trình duyệt chặn autoplay khi chưa chạm, sẽ tự phát ở cú chạm đầu tiên
+                    isMusicPlaying = false;
+                    musicDiscBtn.classList.remove('playing');
+                });
+            }
 
+            clearInterval(noteIconInterval);
             noteIconInterval = setInterval(spawnMusicNote, 900);
         }
 
         function stopMusicBox() {
             isMusicPlaying = false;
             musicDiscBtn.classList.remove('playing');
+            bgMusicAudio.pause();
             clearInterval(melodyInterval);
             clearInterval(noteIconInterval);
         }
@@ -865,11 +875,13 @@
             }
         });
 
-        // Tự động bật hộp nhạc ở lần tương tác đầu tiên của người dùng
-        document.addEventListener('click', function autoStartAudio() {
-            if (!isMusicPlaying) startMusicBox();
-            document.removeEventListener('click', autoStartAudio);
-        }, { once: true });
+        // Tự động phát bài "3 Phải 6 Đừng - Quân A.P" ngay khi mở trang hoặc ở cú chạm đầu tiên
+        startMusicBox();
+        ['click', 'touchstart', 'keydown'].forEach((evtName) => {
+            document.addEventListener(evtName, function autoStartAudio() {
+                if (!isMusicPlaying) startMusicBox();
+            }, { once: true, passive: true });
+        });
 
         const listSlider = document.querySelector(".listSlider");
         document.querySelector(".boxSlider .right").addEventListener("click", function () {
